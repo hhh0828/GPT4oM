@@ -32,7 +32,7 @@ func (r *GRequest) ScanUserRequest() *GRequest {
 func (r GRequest) CreateAPIrequest(apiKey string) *http.Request {
 	reqBody, _ := json.Marshal(r)
 
-	req, _ := http.NewRequest("POST", "https://api.openai.com/v1/engines/davinci/completions", bytes.NewBuffer(reqBody))
+	req, _ := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
