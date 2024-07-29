@@ -1,0 +1,3 @@
+module GPT4OM/GPTCODE
+
+go 1.22.4
