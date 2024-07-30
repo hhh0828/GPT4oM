@@ -4,80 +4,134 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"time"
 )
 
-// 요청 Structure 구현
-type GRequest struct {
-	Prompt      string  `json:"prompt"`
-	MaxTokens   int     `json:"max_tokens"`
-	Temperature float64 `json:"temperature"`
+type Request struct {
+	Model       string   `json:"model"`
+	Messages    Messages `json:"messages"`
+	Temperature float32  `json:"temperature"`
 }
 
-// Scan으로 Input 요청 구현
-func (r *GRequest) ScanUserRequest() *GRequest {
-	fmt.Println("Enter your prompt:")
-	fmt.Scanln(&r.Prompt)
+type Messages struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
 
-	fmt.Println("Enter max tokens (integer):")
-	fmt.Scanln(&r.MaxTokens)
+type Response struct {
+	ID      string    `json:"id"`
+	Object  string    `json:"object"`
+	Created time.Time `json:"created"`
+	Model   string    `json:"model"`
+	Usage   Usage     `json:"usage"`
+	Choices []Choices `json:"choices"`
+}
 
-	fmt.Println("Enter temperature (float):")
-	fmt.Scanln(&r.Temperature)
+type Usage struct {
+	PromptToken     int   `json:"prompt_token"`
+	CompletionToken int   `json:"completion_token"`
+	TotalToken      int64 `json:"total_token"`
+}
 
+type Choices struct {
+	Messages     Messages `json:"message"` // Corrected JSON tag from "messages"
+	Logprobs     any      `json:"logprobs"`
+	Finishreason string   `json:"finish_reason"` // Corrected JSON tag from "finishreason"
+	Index        int      `json:"index"`         // Corrected field name from IDX to Index
+}
+
+func (r *Request) InputUserChat() *Request {
+	fmt.Println("Hi! Please input a prompt you want:")
+	fmt.Scanln(&r.Messages.Content)
 	return r
 }
 
-// 요청 Structure Unmarshal Go object >> Json
-func (r GRequest) CreateAPIrequest(apiKey string) *http.Request {
-	reqBody, _ := json.Marshal(r)
+func MakingRequest() *http.Request {
+	apikey := "YOUR_API_KEY" // Replace with your actual API key
+	url := "https://api.openai.com/v1/chat/completions"
 
-	req, _ := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(reqBody))
+	userreq := &Request{
+		Model:       "gpt-4o-mini",
+		Temperature: 0.7,
+		Messages: Messages{
+			Role: "user",
+		},
+	}
+	userreq.InputUserChat()
+
+	ur, err := json.Marshal(userreq)
+	if err != nil {
+		fmt.Println("Error marshaling request:", err)
+		return nil
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(ur))
+	if err != nil {
+		fmt.Println("Error creating HTTP request:", err)
+		return nil
+	}
+
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-
+	req.Header.Set("Authorization", "Bearer "+apikey)
 	return req
 }
 
-// 응답 Structure 구현
-type Response struct {
-	Choices []struct {
-		Text string `json:"text"`
-	} `json:"choices"`
+func GetResponse(req *http.Request) *http.Response {
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error during HTTP request:", err)
+		return nil
+	}
+
+	return res
 }
 
-// 응답 Structure Marshal 후 Go object로 전환
-func (res *Response) Decoding(re *http.Response) {
-	_ = json.NewDecoder(re.Body).Decode(res)
+func (gres *Response) TransformRes(res *http.Response) *Response {
+	if res != nil && res.Body != nil {
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			return nil
+		}
+
+		err = json.Unmarshal(body, gres)
+		if err != nil {
+			fmt.Println("Error decoding response JSON:", err)
+			fmt.Println("Response body:", string(body)) // Print raw response body for debugging
+			return nil
+		}
+	} else {
+		fmt.Println("No response received or response body is nil")
+	}
+	return gres
+}
+
+func PrintResponse(res *Response) {
+	if res != nil {
+		fmt.Printf("Response ID: %s\nModel: %s\nCreated: %s\n", res.ID, res.Model, res.Created)
+		fmt.Printf("Choices: %+v\n", res.Choices)
+		fmt.Printf("Usage: %+v\n", res.Usage)
+	} else {
+		fmt.Println("No response to print")
+	}
 }
 
 func main() {
-	// API 키 설정 (보안 문제로 환경 변수에서 가져오는 것이 좋습니다)
-	apiKey := "sk-None-izmLhx0PUGxalUxl4RaRT3BlbkFJmSVSdLfv7ypsP6U036hH"
-	if apiKey == "" {
-		fmt.Println("API key is not set")
-		return
-	}
-
-	// 빈 객체 생성
-	requestData := GRequest{}
-	// req 사용자 입력 받고 API 리퀘스트 생성
-	req := requestData.ScanUserRequest().CreateAPIrequest(apiKey)
-
-	// Server로 부터 응답을 받는 client 객체 생성
-	client := &http.Client{}
-	// request를 요청해서 client.Do(request)로 response 반환
-	resp, _ := client.Do(req)
-	defer resp.Body.Close()
-
-	// 응답 데이터 구조체 생성 및 디코딩
-	responseData := new(Response)
-	responseData.Decoding(resp)
-
-	// 결과 출력
-	if len(responseData.Choices) > 0 {
-		fmt.Println("Response:", responseData.Choices[0].Text)
+	req := MakingRequest()
+	if req != nil {
+		rawres := GetResponse(req)
+		if rawres != nil {
+			res := new(Response)
+			transformedRes := res.TransformRes(rawres)
+			PrintResponse(transformedRes)
+		} else {
+			fmt.Println("Failed to get a valid response from the server.")
+		}
 	} else {
-		fmt.Println("No response received.")
+		fmt.Println("Failed to create a valid request.")
 	}
 }
