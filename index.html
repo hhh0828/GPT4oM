@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT 웹 인터페이스</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #chatbox { width: 100%; height: 300px; border: 1px solid #ccc; padding: 10px; overflow-y: auto; }
+        #userInput { width: 80%; padding: 10px; margin-top: 10px; }
+        #sendButton { padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <h1>GPT 웹 인터페이스</h1>
+    <div id="chatbox"></div>
+    <input type="text" id="userInput" placeholder="질문을 입력하세요...">
+    <button id="sendButton">전송</button>
+
+    <script>
+        document.getElementById('sendButton').addEventListener('click', async () => {
+            const userInput = document.getElementById('userInput').value;
+            if (userInput.trim() === "") return;
+
+            const chatbox = document.getElementById('chatbox');
+            chatbox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: userInput })
+            });
+            const data = await response.json();
+            chatbox.innerHTML += `<div><strong>GPT:</strong> ${data.response}</div>`;
+
+            document.getElementById('userInput').value = '';
+        });
+    </script>
+</body>
+</html>

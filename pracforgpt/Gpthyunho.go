@@ -15,6 +15,12 @@ type Request struct {
 	Temperature float32    `json:"temperature"`
 }
 
+type Stream struct {
+	StreamModel    string
+	StreamMessages []Messages
+	Stream         bool
+}
+
 type Messages struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
@@ -53,14 +59,28 @@ func (r *Request) InputUserChat() *Request {
 
 	return r
 }
-func MakingRequest() *http.Request {
+
+//get asks from User on the WEB site. handler is standbyfor .
+
+type Making interface {
+	MakingRequest()
+}
+
+func ()
+
+
+
+func (userreq *Request) MakingRequest() *http.Request {
 	apikey := "sk-None-izmLhx0PUGxalUxl4RaRT3BlbkFJmSVSdLfv7ypsP6U036hH"
 	url := "https://api.openai.com/v1/chat/completions"
 
 	//part of creating go object regarding the user request.
-	userreq := new(Request)
+	
 	userreq.Model = "gpt-4o-mini-2024-07-18"
 	userreq.Temperature = 0.7
+
+	
+	//요청을 따로 빼는게 좋음.. Makingrequest는 재사용우려가 있음...
 	userreq.InputUserChat()
 
 	//marshal the user request so the other lang can understand
@@ -103,8 +123,74 @@ func PrintResponse(res *Response) {
 
 }
 
+// get userinpput with json object.
+// need to transform the data to go object so the g ocompliler can read.
+type Userinput struct {
+	request string
+}
+
+// part of transforming the data to go object.
+
+
+func RequestHandler() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/chat", UserinputHandler)
+
+	return mux
+}
+//JS input data from user handler.
+func UserinputHandler(w http.ResponseWriter, r *http.Request) {
+	//get a chat data from Userinput.
+
+	//need to change the data to the Go object with decoder.
+	uinput := new(Userinput)
+	json.NewDecoder(r.Body).Decode(uinput)
+	//get data and transfer the data with the json code before transfering you must do check if it fit to json type API request for GPT api.
+	var messageslice []Messages
+	messageslice = append(messageslice, Messages{"user", uinput.request})
+
+	
+	//Create reqeust that fit to Json. 
+
+	//transferring the inputdata that hadnled by upper code. and get response
+	res := GetResponse(func() *http.Request {
+		
+		userreq := new(Request)
+		userreq.Messages = messageslice
+		apikey := "sk-None-izmLhx0PUGxalUxl4RaRT3BlbkFJmSVSdLfv7ypsP6U036hH"
+		url := "https://api.openai.com/v1/chat/completions"
+
+	//part of creating go object regarding the user request.
+	
+		userreq.Model = "gpt-4o-mini-2024-07-18"
+		userreq.Temperature = 0.7
+
+	
+
+	//marshal the user request so the other lang can understand
+	ur, _ := json.Marshal(userreq)
+	fmt.Println(string(ur))
+	//create as http request.
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(ur))
+
+	//header set
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apikey)
+	return req
+
+	})
+	//바디에있는 컨텐츠 데이터만 다시 User UI로 이동.
+	
+
+	
+
+
+}
 func main() {
-	req := MakingRequest()
+
+	http.ListenAndServe(":8080", RequestHandler())
+	userreq := new(Request)
+	req := userreq.MakingRequest()
 	rawres := GetResponse(req)
 
 	//fmt.Println(rawres)
