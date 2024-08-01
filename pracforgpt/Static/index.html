@@ -5,35 +5,138 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GPT 웹 인터페이스</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
+        body { font-family: Arial, sans-serif; padding: 20px; position: relative; }
         #chatbox { width: 100%; height: 300px; border: 1px solid #ccc; padding: 10px; overflow-y: auto; }
-        #userInput { width: 80%; padding: 10px; margin-top: 10px; }
+        #userInput { width: 80%; padding: 20px; margin-top: 20px; }
         #sendButton { padding: 10px 20px; }
+        #messages { margin-top: 40px; }
+        img.thumbnail { max-width: 100px; max-height: 100px; margin-left: 10px; vertical-align: middle; }
+        #inputContainer { display: flex; align-items: center; }
+        #uploadForm { display: inline; }
+        .saveButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50; /* 버튼 색상 */
+            color: white; /* 글씨 색상 */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .chat-message {
+            margin-bottom: 20px; /* 대화 간격 */
+        }
     </style>
 </head>
 <body>
     <h1>GPT 웹 인터페이스</h1>
     <div id="chatbox"></div>
-    <input type="text" id="userInput" placeholder="질문을 입력하세요...">
+    <div id="inputContainer">
+        <input type="text" id="userInput" placeholder="질문을 입력하세요...">
+        <img id="thumbnail" class="thumbnail" src="" alt="" style="display:none;">
+    </div>
     <button id="sendButton">전송</button>
 
+    <h2>Upload Image</h2>
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" accept="image/*">
+    </form>
+
+    <div id="messages">
+        <h2>Chat</h2>
+        <div id="messagesContent"></div>
+    </div>
+
+    <h4>Conversation with GPT</h4>
+    <div id="conversation">
+        <p>Your conversation text goes here...</p>
+    </div>
+
+    <button id="saveButton" class="saveButton">Save</button>
+
     <script>
+        let selectedImageData = '';
+
+        document.getElementById('fileInput').addEventListener('change', () => {
+            const file = document.getElementById('fileInput').files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    selectedImageData = event.target.result;
+                    const thumbnail = document.getElementById('thumbnail');
+                    thumbnail.src = selectedImageData;
+                    thumbnail.style.display = 'inline'; // 썸네일을 보여줌
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
         document.getElementById('sendButton').addEventListener('click', async () => {
             const userInput = document.getElementById('userInput').value;
-            if (userInput.trim() === "") return;
+            if (userInput.trim() === "" && selectedImageData === "") return;
 
             const chatbox = document.getElementById('chatbox');
             chatbox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+            if (selectedImageData) {
+                chatbox.innerHTML += `<div><img src="${selectedImageData}" class="thumbnail"></div>`;
+            }
 
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: userInput })
+                body: JSON.stringify({
+                    prompt: userInput,
+                    image: selectedImageData
+                })
             });
             const data = await response.json();
             chatbox.innerHTML += `<div><strong>GPT:</strong> ${data.response}</div>`;
 
             document.getElementById('userInput').value = '';
+            selectedImageData = '';
+            document.getElementById('thumbnail').style.display = 'none'; // 썸네일 숨기기
+            document.getElementById('fileInput').value = '';  // 파일 입력 초기화
+        });
+        document.getElementById('yourInputFieldId').addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault(); // 기본 Enter 동작 방지 (예: 폼 제출)
+        document.getElementById('sendButton').click(); // 버튼 클릭 이벤트 호출
+    }
+    });
+
+        document.getElementById('saveButton').addEventListener('click', function() {
+            // Fetch the conversation from the server
+            fetch('/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.blob(); // 응답을 Blob으로 변환
+            })
+            .then(blob => {
+                // Create a link element to download the blob
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'ConversationHistory.txt'; // Specify the file name
+
+                // Programmatically click the link to trigger the download
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up and remove the link element
+                document.body.removeChild(link);
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
         });
     </script>
 </body>

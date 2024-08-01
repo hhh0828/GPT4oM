@@ -48,6 +48,23 @@ type Choices struct {
 	IDX          int      `json:"index"`
 }
 
+type ImageRequest struct {
+	Image  os.File `json:"image"`
+	Model  string  `json:"model"`
+	Prompt string  `json:"prompt"`
+	N      int     `json:"n"`
+	Size   string  `json:"size"` // need to get a size value from the Frontend.
+}
+
+type ImageResponse struct {
+	Created string
+	Data    []Url
+}
+
+type Url struct {
+	Url string
+}
+
 func (r *Request) InputUserChat() *Request {
 	fmt.Println("Hi Please input a prompt you want")
 	var messageslice []Messages
@@ -132,23 +149,55 @@ type GPToutput struct {
 
 func RequestHandler() *http.ServeMux {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/save", History) // 대화기록 저장
+	//mux.Handlefunc("/image, Imagehandler) // 이미지 업로드
 	mux.HandleFunc("/chat", UserinputHandler)
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/", fs)
+
 	return mux
+}
+
+var messageslice []Messages
+var ResCollector []Messages
+
+// Saving history handler. return newfile and
+func History(w http.ResponseWriter, r *http.Request) {
+	// get the history of conversation.
+	newfile, _ := os.Create("ConversationHistory.txt")
+	defer newfile.Close()
+
+	for _, v := range ResCollector {
+		if v.Role == "user" {
+
+			newfile.WriteString("YOU : " + v.Content + "\n")
+		} else if v.Role == "assistant" {
+			newfile.WriteString("GPT : " + v.Content + "\n")
+		}
+
+	}
+	w.Header().Set("Content-Disposition", "attachment; filename=ConversationHistory.txt")
+	w.Header().Set("Content-Type", "text/plain")
+	http.ServeFile(w, r, "ConversationHistory.txt")
 }
 
 // JS input data from user handler.
 func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	//get a chat data from Userinput.
 
+	// Decode the data, and check if there's a Image []Byte.
+	// if there's no Image byte continue the code.
+	// if there's Image data, redirect request to /Image Handfunc.
+	// as Image Handler has a feature to hanlde a prompt with Image given.
+
 	//need to change the data to the Go object with decoder.
 	var Uinput Userinput
 
 	json.NewDecoder(r.Body).Decode(&Uinput)
 	//get data and transfer the data with the json code before transfering you must do check if it fit to json type API request for GPT api.
-	var messageslice []Messages
-	messageslice = append(messageslice, Messages{"user", Uinput.Request})
+
+	messageslice = CachePreviousConver(messageslice, Messages{"user", Uinput.Request})
+
 	fmt.Println(Uinput.Request)
 	//Create reqeust that fit to Json.
 
@@ -178,6 +227,12 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	rawres := GetResponse(req())
 	transformedd := TransformRes(rawres, &Response{})
+
+	CachePreviouosGres(transformedd, Messages{"user", Uinput.Request})
+	CachePreviouosGres(transformedd, transformedd.Choices[0].Messages)
+
+	fmt.Println("[]Messages: GPT와의 대화 : ", ResCollector)
+
 	//바디에 있는 데이터만 UI쪽으로 전달.
 	outputt := new(GPToutput)
 	outputt.Output = transformedd.Choices[0].Messages.Content
@@ -191,6 +246,27 @@ func SavingResponse(r *Response) []Messages {
 
 }
 */
+
+func CachePreviouosGres(res *Response, content Messages) []Messages {
+	ResCollector = append(ResCollector, content)
+	if len(ResCollector) == 1000 {
+		ResCollector = ResCollector[1:]
+	}
+	return ResCollector
+}
+
+// Messages slice Que - 012,
+func CachePreviousConver(messagesslice []Messages, content Messages) []Messages {
+
+	messagesslice = append(messagesslice, content)
+	if len(messagesslice) == 5 {
+		messagesslice = messagesslice[1:]
+	}
+	fmt.Println(messagesslice)
+	fmt.Println(len(messagesslice))
+	return messagesslice
+}
+
 func main() {
 
 	// / 경로로 들어오는 모든 요청을 ./static 디렉토리의 index.html 파일로 라우팅
@@ -205,8 +281,11 @@ func main() {
 	transfromedres := TransformRes(rawres, res)
 
 	PrintResponse(transfromedres)
-
+	r := http.Request{}
+	r.FormFile("image")
 }
 
 ///need to implement history feature so it works as gpt streaming server.
 ///Server console interface creating requried.
+
+//
