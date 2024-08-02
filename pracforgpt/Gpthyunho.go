@@ -164,6 +164,7 @@ var ResCollector []Messages
 // Saving history handler. return newfile and
 func History(w http.ResponseWriter, r *http.Request) {
 	// get the history of conversation.
+	fmt.Println("start saving")
 	newfile, _ := os.Create("ConversationHistory.txt")
 	defer newfile.Close()
 
@@ -228,10 +229,14 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	rawres := GetResponse(req())
 	transformedd := TransformRes(rawres, &Response{})
 
+	//Stack Conversation at max 1000 (You and GPT)
 	CachePreviouosGres(transformedd, Messages{"user", Uinput.Request})
 	CachePreviouosGres(transformedd, transformedd.Choices[0].Messages)
 
-	fmt.Println("[]Messages: GPT와의 대화 : ", ResCollector)
+	//Stack previous Conver at Max 7,
+	messageslice = CachePreviousConver(messageslice, transformedd.Choices[0].Messages)
+
+	//fmt.Println("[]Messages: GPT와의 대화 : ", ResCollector)
 
 	//바디에 있는 데이터만 UI쪽으로 전달.
 	outputt := new(GPToutput)
@@ -259,7 +264,7 @@ func CachePreviouosGres(res *Response, content Messages) []Messages {
 func CachePreviousConver(messagesslice []Messages, content Messages) []Messages {
 
 	messagesslice = append(messagesslice, content)
-	if len(messagesslice) == 5 {
+	if len(messagesslice) == 7 {
 		messagesslice = messagesslice[1:]
 	}
 	fmt.Println(messagesslice)
@@ -271,7 +276,7 @@ func main() {
 
 	// / 경로로 들어오는 모든 요청을 ./static 디렉토리의 index.html 파일로 라우팅
 
-	http.ListenAndServe(":8080", RequestHandler())
+	http.ListenAndServe("0.0.0.0:8080", RequestHandler())
 	userreq := new(Request)
 	req := userreq.MakingRequest()
 	rawres := GetResponse(req)
@@ -285,7 +290,11 @@ func main() {
 	r.FormFile("image")
 }
 
-///need to implement history feature so it works as gpt streaming server.
-///Server console interface creating requried.
+///Server console interface creating requried.  ?? for temporary terminal view created.
 
-//
+//Thread, Session implement
+
+//3 people uses possible at a same time? //livemode
+//>> dynamic structure // >> 1. Create Data Send <UserandGPT Conversations history> on the chat, or add last content (user and GPT said), User naming
+
+//ID PW system implemet // SQL server.

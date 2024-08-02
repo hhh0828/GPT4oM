@@ -5,32 +5,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GPT 웹 인터페이스</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; position: relative; }
-        #chatbox { width: 100%; height: 300px; border: 1px solid #ccc; padding: 10px; overflow-y: auto; }
-        #userInput { width: 80%; padding: 20px; margin-top: 20px; }
-        #sendButton { padding: 10px 20px; }
-        #messages { margin-top: 40px; }
-        img.thumbnail { max-width: 100px; max-height: 100px; margin-left: 10px; vertical-align: middle; }
-        #inputContainer { display: flex; align-items: center; }
-        #uploadForm { display: inline; }
+        body { 
+            font-family: 'Comic Sans MS', cursive, sans-serif; 
+            padding: 20px; 
+            background-color: #f9f6ff; /* 밝고 부드러운 배경색 */
+        }
+        #chatbox { 
+            width: 100%; 
+            height: 300px; 
+            border: 2px solid #ff91a4; 
+            border-radius: 10px; 
+            padding: 10px; 
+            overflow-y: auto; 
+            background-color: #fff0f6; 
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); /* 가벼운 그림자 */
+        }
+        #userInput { 
+            width: 80%; 
+            padding: 10px; 
+            margin-top: 20px; 
+            border: 2px solid #ff91a4; 
+            border-radius: 10px;
+        }
+        #sendButton { 
+            padding: 10px 20px; 
+            background-color: #ff91a4; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer;
+            font-weight: bold; /* 굵은 글씨 */
+            margin-left: 10px; 
+        }
+        #sendButton:hover {
+            background-color: #ff6584; /* 마우스 오버 시 색상 변화 */
+        }
+        #messages { 
+            margin-top: 40px; 
+        }
+        img.thumbnail { 
+            max-width: 100px; 
+            max-height: 100px; 
+            margin-left: 10px; 
+            vertical-align: middle; 
+            border-radius: 5px; 
+            border: 1px solid #ff91a4; 
+        }
+        #inputContainer { 
+            display: flex; 
+            align-items: center; 
+        }
+        #uploadForm { 
+            display: inline; 
+        }
         .saveButton {
             position: absolute;
             top: 20px;
             right: 20px;
             padding: 10px 20px;
-            background-color: #4CAF50; /* 버튼 색상 */
-            color: white; /* 글씨 색상 */
+            background-color: #ff91a4; 
+            color: white; 
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
             cursor: pointer;
         }
+        .saveButton:hover {
+            background-color: #ff6584; /* 마우스 오버 시 색상 변화 */
+        }
         .chat-message {
-            margin-bottom: 20px; /* 대화 간격 */
+            margin-bottom: 20px; 
+        }
+        h1, h2, h4 { 
+            color: #ff91a4; 
         }
     </style>
 </head>
 <body>
-    <h1>GPT 웹 인터페이스</h1>
+    <h1>GPT 웹 SoyeonhyunhoWorld</h1>
     <div id="chatbox"></div>
     <div id="inputContainer">
         <input type="text" id="userInput" placeholder="질문을 입력하세요...">
@@ -67,7 +118,7 @@
                     selectedImageData = event.target.result;
                     const thumbnail = document.getElementById('thumbnail');
                     thumbnail.src = selectedImageData;
-                    thumbnail.style.display = 'inline'; // 썸네일을 보여줌
+                    thumbnail.style.display = 'inline'; 
                 }
                 reader.readAsDataURL(file);
             }
@@ -96,18 +147,11 @@
 
             document.getElementById('userInput').value = '';
             selectedImageData = '';
-            document.getElementById('thumbnail').style.display = 'none'; // 썸네일 숨기기
-            document.getElementById('fileInput').value = '';  // 파일 입력 초기화
+            document.getElementById('thumbnail').style.display = 'none'; 
+            document.getElementById('fileInput').value = ''; 
         });
-        document.getElementById('yourInputFieldId').addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') {
-        event.preventDefault(); // 기본 Enter 동작 방지 (예: 폼 제출)
-        document.getElementById('sendButton').click(); // 버튼 클릭 이벤트 호출
-    }
-    });
 
         document.getElementById('saveButton').addEventListener('click', function() {
-            // Fetch the conversation from the server
             fetch('/save', {
                 method: 'POST',
                 headers: {
@@ -119,19 +163,15 @@
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-                return response.blob(); // 응답을 Blob으로 변환
+                return response.blob();
             })
             .then(blob => {
-                // Create a link element to download the blob
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = 'ConversationHistory.txt'; // Specify the file name
+                link.download = 'ConversationHistory.txt'; 
 
-                // Programmatically click the link to trigger the download
                 document.body.appendChild(link);
                 link.click();
-
-                // Clean up and remove the link element
                 document.body.removeChild(link);
             })
             .catch(error => {
