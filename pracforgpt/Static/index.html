@@ -107,6 +107,16 @@
     <button id="saveButton" class="saveButton">Save</button>
 
     <script>
+        function escapeHtml(unsafe) {
+        return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/\n/g, "<br>"); // 줄바꿈을 <br>로 변환
+}
+
         let selectedImageData = '';
 
         document.getElementById('fileInput').addEventListener('change', () => {
@@ -143,7 +153,7 @@
                 })
             });
             const data = await response.json();
-            chatbox.innerHTML += `<div><strong>GPT:</strong> ${data.response}</div>`;
+            chatbox.innerHTML += `<div><strong>GPT:</strong> ${escapeHtml(data.response)}</div>`;
 
             document.getElementById('userInput').value = '';
             selectedImageData = '';
@@ -181,3 +191,4 @@
     </script>
 </body>
 </html>
+

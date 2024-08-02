@@ -290,6 +290,26 @@ func main() {
 	r.FormFile("image")
 }
 
+//Making request API 입력 테스트 및 구조체 구현
+//Json 엔코딩 디코딩 구현
+
+//Mux 추가
+//Mux 핸드러 Userinput Handler 추가
+
+//질문간 맥락유지 기능 추가 완료
+//큐 구조 슬라이스로 메시지 구성
+
+//대화기록 세이브 기능 추가 완료
+//History핸들러 기능 추가 및 파일 쓰기
+//Frontend side ? 파일 브라우저 다운로드 구현
+//Port 포워딩 및 빌드 후 시운용 성공
+
+//
+
+//HTML 수정 및 디자인 약간 수정 완료
+
+//need to implement
+
 ///Server console interface creating requried.  ?? for temporary terminal view created.
 
 //Thread, Session implement
@@ -298,3 +318,6 @@ func main() {
 //>> dynamic structure // >> 1. Create Data Send <UserandGPT Conversations history> on the chat, or add last content (user and GPT said), User naming
 
 //ID PW system implemet // SQL server.
+
+//자바스크립트 response HTML 사용자 GPT 입력방지 코드 수정완료
+//위 코드는 주어진 문자열에서 HTML 특수 문자를 안전하게 이스케이프하여 출력합니다. 이처럼 HTML을 이스케이프하면 XSS(교차 사이트 스크립팅) 공격을 예방할 수 있습니다. 문장간 간격 조정 및 HTML탈출 하여 원래 지정된 String 형식 그대로 전달
