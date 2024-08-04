@@ -154,7 +154,7 @@ func RequestHandler() *http.ServeMux {
 	mux.HandleFunc("/chat", UserinputHandler)
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/", fs)
-
+	mux.HandleFunc("/createthread", CreateThread)
 	return mux
 }
 
@@ -272,6 +272,40 @@ func CachePreviousConver(messagesslice []Messages, content Messages) []Messages 
 	return messagesslice
 }
 
+type Tresponse struct {
+	ID            string                 `json:"id"`
+	Object        string                 `json:"object"`
+	CreatedAt     int                    `json:"created_at"`
+	Metadata      map[string]interface{} `json:"metadata"`
+	ToolResources map[string]interface{} `json:"tool_resources"`
+}
+
+type Trequest struct {
+}
+
+func CreateThread(w http.ResponseWriter, r *http.Request) {
+
+	treq := new(Trequest)
+	apikey := "sk-None-izmLhx0PUGxalUxl4RaRT3BlbkFJmSVSdLfv7ypsP6U036hH"
+	url := "https://api.openai.com/v1/threads"
+
+	//part of creating go object regarding the user request.
+
+	//marshal the user request so the other lang can understand
+	ur, _ := json.Marshal(treq)
+	fmt.Println(string(ur))
+	//create as http request.
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(ur))
+
+	//header set
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apikey)
+	req.Header.Set("OpenAI-Beta", "assistants=v2")
+
+	rawres := GetResponse(req)
+	fmt.Println(rawres)
+}
+
 func main() {
 
 	// / 경로로 들어오는 모든 요청을 ./static 디렉토리의 index.html 파일로 라우팅
@@ -288,6 +322,7 @@ func main() {
 	PrintResponse(transfromedres)
 	r := http.Request{}
 	r.FormFile("image")
+
 }
 
 //Making request API 입력 테스트 및 구조체 구현
@@ -313,11 +348,19 @@ func main() {
 ///Server console interface creating requried.  ?? for temporary terminal view created.
 
 //Thread, Session implement
+//create conversation session on each ID or Client or IP address
+//how could identify each user who access to website ?
+
+//client access > send request > with IP address (network base)
+//client access > ID / PW
+//clent access > ??
 
 //3 people uses possible at a same time? //livemode
 //>> dynamic structure // >> 1. Create Data Send <UserandGPT Conversations history> on the chat, or add last content (user and GPT said), User naming
 
 //ID PW system implemet // SQL server.
+
+//Image handler추가,.. 사용자 request 기반.
 
 //자바스크립트 response HTML 사용자 GPT 입력방지 코드 수정완료
 //위 코드는 주어진 문자열에서 HTML 특수 문자를 안전하게 이스케이프하여 출력합니다. 이처럼 HTML을 이스케이프하면 XSS(교차 사이트 스크립팅) 공격을 예방할 수 있습니다. 문장간 간격 조정 및 HTML탈출 하여 원래 지정된 String 형식 그대로 전달
