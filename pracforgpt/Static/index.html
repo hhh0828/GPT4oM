@@ -119,6 +119,12 @@
 
         let selectedImageData = '';
 
+        const socket = new WebSocket('ws://localhost:8080/ws');
+        socket.addEventListener('message', function(event) {
+        const chatbox = document.getElementById('chatbox');
+        chatbox.innerHTML += `<div class="chat-message">${event.data}</div>`;
+        });
+
         document.getElementById('fileInput').addEventListener('change', () => {
             const file = document.getElementById('fileInput').files[0];
 
@@ -138,8 +144,16 @@
             const userInput = document.getElementById('userInput').value;
             if (userInput.trim() === "" && selectedImageData === "") return;
 
+            const ipresponse = await fetch('/whatismyip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                })
+            });
+            const ipdata = await ipresponse.json();
+
             const chatbox = document.getElementById('chatbox');
-            chatbox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+            chatbox.innerHTML += `<div><strong>${escapeHtml(ipdata.ipresponse)} 님의 채팅 </strong> ${escapeHtml(userInput)}</div>`;
             if (selectedImageData) {
                 chatbox.innerHTML += `<div><img src="${selectedImageData}" class="thumbnail"></div>`;
             }
