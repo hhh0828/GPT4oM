@@ -154,7 +154,7 @@ func RequestHandler() *http.ServeMux {
 	mux.HandleFunc("/chat", UserinputHandler)
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/", fs)
-
+	mux.HandleFunc("/createthread", CreateThread)
 	return mux
 }
 
@@ -164,6 +164,7 @@ var ResCollector []Messages
 // Saving history handler. return newfile and
 func History(w http.ResponseWriter, r *http.Request) {
 	// get the history of conversation.
+	fmt.Println("start saving")
 	newfile, _ := os.Create("ConversationHistory.txt")
 	defer newfile.Close()
 
@@ -228,10 +229,14 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	rawres := GetResponse(req())
 	transformedd := TransformRes(rawres, &Response{})
 
+	//Stack Conversation at max 1000 (You and GPT)
 	CachePreviouosGres(transformedd, Messages{"user", Uinput.Request})
 	CachePreviouosGres(transformedd, transformedd.Choices[0].Messages)
 
-	fmt.Println("[]Messages: GPT와의 대화 : ", ResCollector)
+	//Stack previous Conver at Max 7,
+	messageslice = CachePreviousConver(messageslice, transformedd.Choices[0].Messages)
+
+	//fmt.Println("[]Messages: GPT와의 대화 : ", ResCollector)
 
 	//바디에 있는 데이터만 UI쪽으로 전달.
 	outputt := new(GPToutput)
@@ -259,7 +264,7 @@ func CachePreviouosGres(res *Response, content Messages) []Messages {
 func CachePreviousConver(messagesslice []Messages, content Messages) []Messages {
 
 	messagesslice = append(messagesslice, content)
-	if len(messagesslice) == 5 {
+	if len(messagesslice) == 7 {
 		messagesslice = messagesslice[1:]
 	}
 	fmt.Println(messagesslice)
@@ -267,11 +272,45 @@ func CachePreviousConver(messagesslice []Messages, content Messages) []Messages 
 	return messagesslice
 }
 
+type Tresponse struct {
+	ID            string                 `json:"id"`
+	Object        string                 `json:"object"`
+	CreatedAt     int                    `json:"created_at"`
+	Metadata      map[string]interface{} `json:"metadata"`
+	ToolResources map[string]interface{} `json:"tool_resources"`
+}
+
+type Trequest struct {
+}
+
+func CreateThread(w http.ResponseWriter, r *http.Request) {
+
+	treq := new(Trequest)
+	apikey := "sk-None-izmLhx0PUGxalUxl4RaRT3BlbkFJmSVSdLfv7ypsP6U036hH"
+	url := "https://api.openai.com/v1/threads"
+
+	//part of creating go object regarding the user request.
+
+	//marshal the user request so the other lang can understand
+	ur, _ := json.Marshal(treq)
+	fmt.Println(string(ur))
+	//create as http request.
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(ur))
+
+	//header set
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apikey)
+	req.Header.Set("OpenAI-Beta", "assistants=v2")
+
+	rawres := GetResponse(req)
+	fmt.Println(rawres)
+}
+
 func main() {
 
 	// / 경로로 들어오는 모든 요청을 ./static 디렉토리의 index.html 파일로 라우팅
 
-	http.ListenAndServe(":8080", RequestHandler())
+	http.ListenAndServe("0.0.0.0:8080", RequestHandler())
 	userreq := new(Request)
 	req := userreq.MakingRequest()
 	rawres := GetResponse(req)
@@ -283,14 +322,44 @@ func main() {
 	PrintResponse(transfromedres)
 	r := http.Request{}
 	r.FormFile("image")
+
 }
 
-///need to implement history feature so it works as gpt streaming server.
-///Server console interface creating requried.
+//Making request API 입력 테스트 및 구조체 구현
+//Json 엔코딩 디코딩 구현
 
-//버그 수정해야할 사항
-//1. 채팅창에서 HTML 입력시 코드가 실행되는것, 사용자 입력 방지. GPT 입력방지. 필요
-//2. 엔터키 누를 시 감지 후 핸들러 구현.
-//3. 대화내용이 현재 가독성이 매우 떨어짐 frontend 사이드에서 재구현 필요.
-//4. 이미지 업로드 후 API 서버로 송신 불가함. // 확인해봐야함.
-//5.
+//Mux 추가
+//Mux 핸드러 Userinput Handler 추가
+
+//질문간 맥락유지 기능 추가 완료
+//큐 구조 슬라이스로 메시지 구성
+
+//대화기록 세이브 기능 추가 완료
+//History핸들러 기능 추가 및 파일 쓰기
+//Frontend side ? 파일 브라우저 다운로드 구현
+//Port 포워딩 및 빌드 후 시운용 성공
+
+//
+
+//HTML 수정 및 디자인 약간 수정 완료
+
+//need to implement
+
+///Server console interface creating requried.  ?? for temporary terminal view created.
+
+//Thread, Session implement
+//create conversation session on each ID or Client or IP address
+//how could identify each user who access to website ?
+
+//client access > send request > with IP address (network base)
+//client access > ID / PW
+//clent access > ??
+
+//3 people uses possible at a same time? //livemode
+//>> dynamic structure // >> 1. Create Data Send <UserandGPT Conversations history> on the chat, or add last content (user and GPT said), User naming
+
+//ID PW system implemet // SQL server.
+
+//Image handler추가,.. 사용자 request 기반.
+
+//
