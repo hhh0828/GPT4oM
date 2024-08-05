@@ -152,10 +152,23 @@ func RequestHandler() *http.ServeMux {
 	mux.HandleFunc("/save", History) // 대화기록 저장
 	//mux.Handlefunc("/image, Imagehandler) // 이미지 업로드
 	mux.HandleFunc("/chat", UserinputHandler)
-	fs := http.FileServer(http.Dir("./static"))
-	mux.Handle("/", fs)
+	mux.HandleFunc("/", IndexHandler)
 	mux.HandleFunc("/createthread", CreateThread)
+	mux.HandleFunc("/whatismyip", IPreturn)
+	mux.HandleFunc("/ws", HandleConnections)
 	return mux
+}
+
+type AccessUserinfo struct {
+	IPadd string `json:"ipresponse"`
+}
+
+func IPreturn(w http.ResponseWriter, r *http.Request) {
+	ip := r.RemoteAddr
+	Accuserinfo := new(AccessUserinfo)
+	Accuserinfo.IPadd = ip
+	data, _ := json.Marshal(Accuserinfo)
+	w.Write(data)
 }
 
 var messageslice []Messages
@@ -171,7 +184,7 @@ func History(w http.ResponseWriter, r *http.Request) {
 	for _, v := range ResCollector {
 		if v.Role == "user" {
 
-			newfile.WriteString("YOU : " + v.Content + "\n")
+			newfile.WriteString(v.Content + "\n")
 		} else if v.Role == "assistant" {
 			newfile.WriteString("GPT : " + v.Content + "\n")
 		}
@@ -197,7 +210,7 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&Uinput)
 	//get data and transfer the data with the json code before transfering you must do check if it fit to json type API request for GPT api.
 
-	messageslice = CachePreviousConver(messageslice, Messages{"user", Uinput.Request})
+	messageslice = CachePreviousConver(messageslice, Messages{"user", r.RemoteAddr + "님의 채팅 : " + Uinput.Request})
 
 	fmt.Println(Uinput.Request)
 	//Create reqeust that fit to Json.
@@ -223,6 +236,7 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 		//header set
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apikey)
+
 		return req
 
 	}
@@ -230,7 +244,7 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	transformedd := TransformRes(rawres, &Response{})
 
 	//Stack Conversation at max 1000 (You and GPT)
-	CachePreviouosGres(transformedd, Messages{"user", Uinput.Request})
+	CachePreviouosGres(transformedd, Messages{"user", r.RemoteAddr + "님의 채팅 : " + Uinput.Request})
 	CachePreviouosGres(transformedd, transformedd.Choices[0].Messages)
 
 	//Stack previous Conver at Max 7,
@@ -283,6 +297,9 @@ type Tresponse struct {
 type Trequest struct {
 }
 
+var UpdateDetector bool
+
+// Thread created - but never used yet.
 func CreateThread(w http.ResponseWriter, r *http.Request) {
 
 	treq := new(Trequest)
@@ -311,11 +328,17 @@ func CreateThread(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func IndexHandler(w http.ResponseWriter, r *http.Request) {
+	ip := r.RemoteAddr
+	fmt.Println(ip)
+	http.ServeFile(w, r, "./static/index.html")
+}
+
 func main() {
 
 	// / 경로로 들어오는 모든 요청을 ./static 디렉토리의 index.html 파일로 라우팅
-
-	http.ListenAndServe("0.0.0.0:8080", RequestHandler())
+	go handleMessages()
+	http.ListenAndServe(":8080", RequestHandler())
 	userreq := new(Request)
 	req := userreq.MakingRequest()
 	rawres := GetResponse(req)
@@ -367,5 +390,4 @@ func main() {
 
 //Image handler추가,.. 사용자 request 기반.
 
-//자바스크립트 response HTML 사용자 GPT 입력방지 코드 수정완료
-//위 코드는 주어진 문자열에서 HTML 특수 문자를 안전하게 이스케이프하여 출력합니다. 이처럼 HTML을 이스케이프하면 XSS(교차 사이트 스크립팅) 공격을 예방할 수 있습니다. 문장간 간격 조정 및 HTML탈출 하여 원래 지정된 String 형식 그대로 전달
+//

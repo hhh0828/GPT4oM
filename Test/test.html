@@ -1,0 +1,234 @@
+### 수정된 HTML 코드
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT 웹 인터페이스</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            padding: 20px;
+            background-color: #f9f6ff; /* 밝고 부드러운 배경색 */
+        }
+        #chatbox {
+            width: 100%;
+            height: 300px;
+            border: 2px solid #ff91a4;
+            border-radius: 10px;
+            padding: 10px;
+            overflow-y: auto;
+            background-color: #fff0f6;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); /* 가벼운 그림자 */
+        }
+        #userInput {
+            width: 80%;
+            padding: 10px;
+            margin-top: 20px;
+            border: 2px solid #ff91a4;
+            border-radius: 10px;
+        }
+        #sendButton {
+            padding: 10px 20px;
+            background-color: #ff91a4;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold; /* 굵은 글씨 */
+            margin-left: 10px;
+        }
+        #sendButton:hover {
+            background-color: #ff6584; /* 마우스 오버 시 색상 변화 */
+        }
+        #messages {
+            margin-top: 40px;
+        }
+        img.thumbnail {
+            max-width: 100px;
+            max-height: 100px;
+            margin-left: 10px;
+            vertical-align: middle;
+            border-radius: 5px;
+            border: 1px solid #ff91a4;
+        }
+        #inputContainer {
+            display: flex;
+            align-items: center;
+        }
+        #uploadForm {
+            display: inline;
+        }
+        .saveButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #ff91a4;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .saveButton:hover {
+            background-color: #ff6584; /* 마우스 오버 시 색상 변화 */
+        }
+        .chat-message {
+            margin-bottom: 20px;
+        }
+        h1, h2, h4 {
+            color: #ff91a4;
+        }
+    </style>
+</head>
+<body>
+    <h1>GPT 웹 SoyeonhyunhoWorld</h1>
+    <div id="chatbox"></div>
+    <div id="inputContainer">
+        <input type="text" id="userInput" placeholder="질문을 입력하세요...">
+        <img id="thumbnail" class="thumbnail" src="" alt="" style="display:none;">
+    </div>
+    <button id="sendButton">전송</button>
+    
+    <h2>Upload Image</h2>
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" accept="image/*">
+    </form>
+    
+    <div id="messages">
+        <h2>Chat</h2>
+        <div id="messagesContent"></div>
+    </div>
+    
+    <h4>Conversation with GPT</h4>
+    <div id="conversation">
+        <p>Your conversation text goes here...</p>
+    </div>
+    
+    <button id="saveButton" class="saveButton">Save</button>
+    
+    <script>
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/\n/g, "<br>"); // 줄바꿈을 <br>로 변환
+        }
+
+        let selectedImageData = '';
+
+        // 웹 소켓 설정
+        const socket = new WebSocket("ws://localhost:8080/ws"); // 서버 주소에 맞게 수정 필요
+
+        socket.onopen = () => {
+            console.log("WebSocket connection established");
+        };
+
+        socket.onmessage = (event) => {
+            const chatbox = document.getElementById('chatbox');
+            chatbox.innerHTML += `<div><strong>GPT:</strong> ${escapeHtml(event.data)}</div>`;
+        };
+
+        document.getElementById('fileInput').addEventListener('change', () => {
+            const file = document.getElementById('fileInput').files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    selectedImageData = event.target.result;
+                    const thumbnail = document.getElementById('thumbnail');
+                    thumbnail.src = selectedImageData;
+                    thumbnail.style.display = 'inline';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('sendButton').addEventListener('click', () => {
+            const userInput = document.getElementById('userInput').value;
+            if (userInput.trim() === "" && selectedImageData === "") return;
+
+            const chatbox = document.getElementById('chatbox');
+            chatbox.innerHTML += `<div><strong>나:</strong> ${escapeHtml(userInput)}</div>`;
+            if (selectedImageData) {
+                chatbox.innerHTML += `<div><img src="${selectedImageData}" class="thumbnail"></div>`;
+            }
+
+            // 웹 소켓을 통해 메시지 전송
+            socket.send(userInput);
+
+            document.getElementById('userInput').value = '';
+            selectedImageData = '';
+            document.getElementById('thumbnail').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+        });
+
+        document.getElementById('saveButton').addEventListener('click', function() {
+            fetch('/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'ConversationHistory.txt';
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+### 주요 변경 사항
+
+1. **웹 소켓 연결 설정**:
+   ```javascript
+   const socket = new WebSocket("ws://localhost:8080/ws"); // 서버 주소에 맞게 수정 필요
+   ```
+   - 웹 소켓을 서버에 연결하기 위해 `WebSocket` 객체를 생성합니다. `ws://localhost:8080/ws`는 서버의 주소와 경로에 맞게 수정해야 합니다.
+
+2. **웹 소켓 이벤트 핸들러**:
+   ```javascript
+   socket.onopen = () => {
+       console.log("WebSocket connection established");
+   };
+
+   socket.onmessage = (event) => {
+       const chatbox = document.getElementById('chatbox');
+       chatbox.innerHTML += `<div><strong>GPT:</strong> ${escapeHtml(event.data)}</div>`;
+   };
+   ```
+   - 웹 소켓 연결이 열리면 로그를 출력하고, 서버로부터 메시지를 수신할 때 `onmessage` 이벤트 핸들러를 통해 수신한 메시지를 채팅 박스에 추가합니다.
+
+3. **메시지 전송**:
+   ```javascript
+   socket.send(userInput);
+   ```
+   - 사용자가 입력한 메시지를 웹 소켓을 통해 서버에 전송합니다.
+
+### 요약
+
+위의 코드를 통해 클라이언트 측에서 웹 소켓 연결을 설정하고 서버와 메시지를 주고받을 수 있습니다. 이제 클라이언트는 사용자가 입력한 메시지를 웹 소켓을 통해 서버로 전송하고, 서버로부터 응답을 받아 채팅 박스에 표시하게 됩니다.
+
+추가적인 질문이나 도움이 필요하면 언제든지 말씀해 주세요!
