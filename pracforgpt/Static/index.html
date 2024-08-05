@@ -119,11 +119,14 @@
 
         let selectedImageData = '';
 
-        const socket = new WebSocket('ws://localhost:8080/ws');
+        const socket = new WebSocket('ws://211.221.147.21:3389/ws');
         socket.addEventListener('message', function(event) {
         const chatbox = document.getElementById('chatbox');
-        chatbox.innerHTML += `<div class="chat-message">${event.data}</div>`;
+        console.log('Received', event.data)
+        chatbox.innerHTML += `<div class="chat-message"> ${event.data}</div>`;
         });
+
+        
 
         document.getElementById('fileInput').addEventListener('change', () => {
             const file = document.getElementById('fileInput').files[0];
@@ -150,7 +153,14 @@
                 body: JSON.stringify({
                 })
             });
+
+            document.getElementById('userInput').value = '';
+            selectedImageData = '';
+            document.getElementById('thumbnail').style.display = 'none'; 
+            document.getElementById('fileInput').value = ''; 
+            
             const ipdata = await ipresponse.json();
+
 
             const chatbox = document.getElementById('chatbox');
             chatbox.innerHTML += `<div><strong>${escapeHtml(ipdata.ipresponse)} 님의 채팅 </strong> ${escapeHtml(userInput)}</div>`;
@@ -169,10 +179,6 @@
             const data = await response.json();
             chatbox.innerHTML += `<div><strong>GPT:</strong> ${escapeHtml(data.response)}</div>`;
 
-            document.getElementById('userInput').value = '';
-            selectedImageData = '';
-            document.getElementById('thumbnail').style.display = 'none'; 
-            document.getElementById('fileInput').value = ''; 
         });
 
         document.getElementById('saveButton').addEventListener('click', function() {

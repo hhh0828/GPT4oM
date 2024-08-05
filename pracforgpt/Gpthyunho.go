@@ -195,6 +195,11 @@ func History(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "ConversationHistory.txt")
 }
 
+type SendDatatoGO struct {
+	IPaddr string
+	Msg    string
+}
+
 // JS input data from user handler.
 func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	//get a chat data from Userinput.
@@ -211,7 +216,12 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	//get data and transfer the data with the json code before transfering you must do check if it fit to json type API request for GPT api.
 
 	messageslice = CachePreviousConver(messageslice, Messages{"user", r.RemoteAddr + "님의 채팅 : " + Uinput.Request})
+	var uc SendDatatoGO = SendDatatoGO{
+		IPaddr: r.RemoteAddr,
+		Msg:    Uinput.Request,
+	}
 
+	userchat <- uc
 	fmt.Println(Uinput.Request)
 	//Create reqeust that fit to Json.
 
@@ -252,12 +262,15 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 
 	//fmt.Println("[]Messages: GPT와의 대화 : ", ResCollector)
 
+	broadcast <- "GPT : " + transformedd.Choices[0].Messages.Content
 	//바디에 있는 데이터만 UI쪽으로 전달.
-	outputt := new(GPToutput)
-	outputt.Output = transformedd.Choices[0].Messages.Content
-	w.Header().Set("Content-Type", "application/json")
-	sdata, _ := json.Marshal(outputt)
-	w.Write(sdata)
+	/*
+		outputt := new(GPToutput)
+		outputt.Output = transformedd.Choices[0].Messages.Content
+		w.Header().Set("Content-Type", "application/json")
+		sdata, _ := json.Marshal(outputt)
+		w.Write(sdata)
+	*/
 }
 
 /*
@@ -338,7 +351,7 @@ func main() {
 
 	// / 경로로 들어오는 모든 요청을 ./static 디렉토리의 index.html 파일로 라우팅
 	go handleMessages()
-	http.ListenAndServe(":8080", RequestHandler())
+	http.ListenAndServe("0.0.0.0:8080", RequestHandler())
 	userreq := new(Request)
 	req := userreq.MakingRequest()
 	rawres := GetResponse(req)
