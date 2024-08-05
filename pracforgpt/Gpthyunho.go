@@ -288,4 +288,9 @@ func main() {
 ///need to implement history feature so it works as gpt streaming server.
 ///Server console interface creating requried.
 
-//
+//버그 수정해야할 사항
+//1. 채팅창에서 HTML 입력시 코드가 실행되는것, 사용자 입력 방지. GPT 입력방지. 필요
+//2. 엔터키 누를 시 감지 후 핸들러 구현.
+//3. 대화내용이 현재 가독성이 매우 떨어짐 frontend 사이드에서 재구현 필요.
+//4. 이미지 업로드 후 API 서버로 송신 불가함. // 확인해봐야함.
+//5.
