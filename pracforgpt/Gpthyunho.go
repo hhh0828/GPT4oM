@@ -304,6 +304,11 @@ func CreateThread(w http.ResponseWriter, r *http.Request) {
 
 	rawres := GetResponse(req)
 	fmt.Println(rawres)
+
+	Tres := Tresponse{}
+	json.NewDecoder(rawres.Body).Decode(&Tres)
+	fmt.Println(Tres)
+
 }
 
 func main() {
