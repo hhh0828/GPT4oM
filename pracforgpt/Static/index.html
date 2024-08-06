@@ -12,7 +12,7 @@
         }
         #chatbox { 
             width: 100%; 
-            height: 300px; 
+            height: 700px; 
             border: 2px solid #ff91a4; 
             border-radius: 10px; 
             padding: 10px; 
@@ -86,8 +86,13 @@
     <div id="inputContainer">
         <input type="text" id="userInput" placeholder="질문을 입력하세요...">
         <img id="thumbnail" class="thumbnail" src="" alt="" style="display:none;">
+        
+       
+        
     </div>
     <button id="sendButton">전송</button>
+    <div id="loading" style="display: none;">입력 제한 중... 
+            <div id="counter" style="display: none;"></div> </div>
 
     <h2>Upload Image</h2>
     <form id="uploadForm" method="post" enctype="multipart/form-data">
@@ -119,14 +124,14 @@
 
         let selectedImageData = '';
 
-        const socket = new WebSocket('ws://211.221.147.21:3389/ws');
+        const socket = new WebSocket('ws://211.221.147.21:8112/ws');
         socket.addEventListener('message', function(event) {
         const chatbox = document.getElementById('chatbox');
+        const escapedData = escapeHtml(event.data)
         console.log('Received', event.data)
-        chatbox.innerHTML += `<div class="chat-message"> ${event.data}</div>`;
+        chatbox.innerHTML += `<div class="chat-message"> ${escapedData} </div>`;
         });
 
-        
 
         document.getElementById('fileInput').addEventListener('change', () => {
             const file = document.getElementById('fileInput').files[0];
@@ -146,6 +151,26 @@
         document.getElementById('sendButton').addEventListener('click', async () => {
             const userInput = document.getElementById('userInput').value;
             if (userInput.trim() === "" && selectedImageData === "") return;
+            sendButton.disabled = true;
+
+            // 로딩 메시지와 카운터 표시
+document.getElementById('loading').style.display = 'block';
+const counterDiv = document.getElementById('counter');
+counterDiv.style.display = 'block';
+
+// 카운터 시작
+let count = 5;
+counterDiv.innerText = `남은 시간: ${count}초`;
+const interval = setInterval(() => {
+count--;
+counterDiv.innerText = `남은 시간: ${count}초`;
+if (count <= 0) {
+clearInterval(interval);
+counterDiv.style.display = 'none'; // 카운터 숨기기
+}
+}, 1000);
+
+
 
             const ipresponse = await fetch('/whatismyip', {
                 method: 'POST',
@@ -160,7 +185,12 @@
             document.getElementById('fileInput').value = ''; 
             
             const ipdata = await ipresponse.json();
-
+            // 버튼 활성화 (5초 대기)
+            setTimeout(() => {
+sendButton.disabled = false;
+document.getElementById('loading').style.display = 'none'; // 로딩 메시지 숨기기
+}, 5000);
+            
 
             const chatbox = document.getElementById('chatbox');
             chatbox.innerHTML += `<div><strong>${escapeHtml(ipdata.ipresponse)} 님의 채팅 </strong> ${escapeHtml(userInput)}</div>`;
@@ -208,6 +238,14 @@
                 console.error('There was a problem with the fetch operation:', error);
             });
         });
+
+
+userInput.addEventListener('keydown', (event) => {
+if (event.key === 'Enter') {
+event.preventDefault(); // 기본 엔터 키 동작을 방지합니다.
+sendButton.click(); // 버튼 클릭 이벤트를 트리거합니다.
+}
+});
     </script>
 </body>
 </html>

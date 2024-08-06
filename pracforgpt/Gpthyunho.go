@@ -97,7 +97,7 @@ func (userreq *Request) MakingRequest() *http.Request {
 
 	//marshal the user request so the other lang can understand
 	ur, _ := json.Marshal(userreq)
-	fmt.Println(string(ur))
+	//fmt.Println(string(ur))
 	//create as http request.
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(ur))
 
@@ -198,6 +198,7 @@ func History(w http.ResponseWriter, r *http.Request) {
 type SendDatatoGO struct {
 	IPaddr string
 	Msg    string
+	Gres   string
 }
 
 // JS input data from user handler.
@@ -216,13 +217,8 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	//get data and transfer the data with the json code before transfering you must do check if it fit to json type API request for GPT api.
 
 	messageslice = CachePreviousConver(messageslice, Messages{"user", r.RemoteAddr + "님의 채팅 : " + Uinput.Request})
-	var uc SendDatatoGO = SendDatatoGO{
-		IPaddr: r.RemoteAddr,
-		Msg:    Uinput.Request,
-	}
 
-	userchat <- uc
-	fmt.Println(Uinput.Request)
+	//fmt.Println(Uinput.Request)
 	//Create reqeust that fit to Json.
 
 	//transferring the inputdata that hadnled by upper code. and get response
@@ -257,20 +253,33 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	CachePreviouosGres(transformedd, Messages{"user", r.RemoteAddr + "님의 채팅 : " + Uinput.Request})
 	CachePreviouosGres(transformedd, transformedd.Choices[0].Messages)
 
+	var uc SendDatatoGO = SendDatatoGO{
+		IPaddr: r.RemoteAddr,
+		Msg:    Uinput.Request,
+		Gres:   "GPT : " + transformedd.Choices[0].Messages.Content,
+	}
+	userchat <- uc
 	//Stack previous Conver at Max 7,
 	messageslice = CachePreviousConver(messageslice, transformedd.Choices[0].Messages)
 
 	//fmt.Println("[]Messages: GPT와의 대화 : ", ResCollector)
 
-	broadcast <- "GPT : " + transformedd.Choices[0].Messages.Content
 	//바디에 있는 데이터만 UI쪽으로 전달.
 	/*
-		outputt := new(GPToutput)
-		outputt.Output = transformedd.Choices[0].Messages.Content
-		w.Header().Set("Content-Type", "application/json")
-		sdata, _ := json.Marshal(outputt)
-		w.Write(sdata)
+			a := "GPT : " + transformedd.Choices[0].Messages.Content
+		broadcast <- a
+		fmt.Println(a, "여기는 inputhandler쪽")
+			outputt := new(GPToutput)
+			outputt.Output = transformedd.Choices[0].Messages.Content
+			w.Header().Set("Content-Type", "application/json")
+			sdata, _ := json.Marshal(outputt)
+			w.Write(sdata)
 	*/
+}
+
+func SendingChan() {
+
+	broadcast <- ResCollector[len(ResCollector)-1].Content
 }
 
 /*
@@ -294,8 +303,8 @@ func CachePreviousConver(messagesslice []Messages, content Messages) []Messages 
 	if len(messagesslice) == 7 {
 		messagesslice = messagesslice[1:]
 	}
-	fmt.Println(messagesslice)
-	fmt.Println(len(messagesslice))
+	//fmt.Println(messagesslice)
+	//fmt.Println(len(messagesslice))
 	return messagesslice
 }
 
@@ -342,8 +351,8 @@ func CreateThread(w http.ResponseWriter, r *http.Request) {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	ip := r.RemoteAddr
-	fmt.Println(ip)
+
+	fmt.Println(r.RemoteAddr + "IndexHandler 로부터 Print 된 IP 주소")
 	http.ServeFile(w, r, "./static/index.html")
 }
 
@@ -396,11 +405,16 @@ func main() {
 //client access > ID / PW
 //clent access > ??
 
+//DB 서버 올리고
+//PW 원웨이 함수로 해쉬처리
+//ID / PW 저장 회원가입 받음
+
+//implemtented.
 //3 people uses possible at a same time? //livemode
-//>> dynamic structure // >> 1. Create Data Send <UserandGPT Conversations history> on the chat, or add last content (user and GPT said), User naming
 
 //ID PW system implemet // SQL server.
 
 //Image handler추가,.. 사용자 request 기반.
 
+//웹소켓 연결 끊김시, GPT 응답이 한번 안들려오는 문제 개선해야함. 버그찾아야함 ....
 //

@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
 var (
+	//wg sync.WaitGroup
 	clients   = make(map[*websocket.Conn]bool) // 활성 클라이언트 목록
 	broadcast = make(chan string)              // 브로드캐스트 채널
 
 	userchat = make(chan SendDatatoGO)
-	mu       sync.Mutex // 동시성 제어를 위한 뮤텍스
 )
 
 type Jrequest struct {
@@ -22,12 +21,13 @@ type Jrequest struct {
 }
 
 func handleMessages() {
+
 	for {
 
 		usermsg := <-userchat
-		msg := <-broadcast
+
 		//fmt.Println("chan working", msg)
-		mu.Lock()
+
 		for client := range clients {
 			//fmt.Println(client)
 
@@ -36,23 +36,26 @@ func handleMessages() {
 			//a1 := client.LocalAddr().String()
 			clientAddr := client.NetConn().RemoteAddr().String()
 
-			fmt.Println("thisis checking for ip", clientAddr)
-			fmt.Println("thisis from usermsg.IPaddr", usermsg.IPaddr)
+			//fmt.Println("thisis checking for ip", clientAddr)
+			//fmt.Println("thisis from usermsg.IPaddr", usermsg.IPaddr)
 			if !isSameIP(clientAddr, usermsg.IPaddr) {
-				client.WriteMessage(websocket.TextMessage, []byte(usermsg.IPaddr+" 님의 채팅 : "+usermsg.Msg))
+				err1 := client.WriteMessage(websocket.TextMessage, []byte(usermsg.IPaddr+" 님의 채팅 : "+usermsg.Msg))
+				if err1 != nil {
+					fmt.Println("메시지 전송 오류:", err1, client.NetConn().RemoteAddr().String())
+					client.Close()
+					delete(clients, client)
+				}
 			}
-
-			err := client.WriteMessage(websocket.TextMessage, []byte(msg))
-
+			err := client.WriteMessage(websocket.TextMessage, []byte(usermsg.Gres))
 			if err != nil {
-				fmt.Println("메시지 전송 오류:", err)
+				fmt.Println("메시지 전송 오류:", err, client.NetConn().RemoteAddr().String())
 				client.Close()
 				delete(clients, client)
 			}
 		}
-		mu.Unlock()
 
 	}
+
 }
 func isSameIP(clientAddr, usermsgAddr string) bool {
 	clientIP, _, err := net.SplitHostPort(clientAddr)
@@ -86,14 +89,16 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println("Conn객체 만들어짐")
+	//fmt.Println("아ㅣ거는 테스트이다 ㅇtest")
 	defer conn.Close()
-	mu.Lock()
+
 	clients[conn] = true
-	mu.Unlock()
 
 	for {
 		req := new(Messages)
 		conn.ReadJSON(&req)
+		//fmt.Println(req)
 		broadcast <- req.Content
 
 		break
