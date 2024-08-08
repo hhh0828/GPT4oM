@@ -124,7 +124,7 @@
 
         let selectedImageData = '';
 
-        const socket = new WebSocket('ws://211.221.147.21:8112/ws');
+        const socket = new WebSocket('ws://localhost:8080/ws');
         socket.addEventListener('message', function(event) {
         const chatbox = document.getElementById('chatbox');
         const escapedData = escapeHtml(event.data)

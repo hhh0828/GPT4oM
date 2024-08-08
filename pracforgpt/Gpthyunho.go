@@ -1,19 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 )
-
-type Request struct {
-	Model       string     `json:"model"`
-	Messages    []Messages `json:"messages"`
-	Temperature float32    `json:"temperature"`
-}
 
 type Stream struct {
 	StreamModel    string
@@ -65,46 +58,10 @@ type Url struct {
 	Url string
 }
 
-func (r *Request) InputUserChat() *Request {
-	fmt.Println("Hi Please input a prompt you want")
-	var messageslice []Messages
-	var content string
-	reader := bufio.NewReader(os.Stdin)
-	content, _ = reader.ReadString('\n')
-	messageslice = append(messageslice, Messages{"user", content})
-	r.Messages = messageslice
-
-	return r
-}
-
 //get asks from User on the WEB site. handler is standbyfor .
 
 type Making interface {
 	MakingRequest()
-}
-
-func (userreq *Request) MakingRequest() *http.Request {
-	apikey := "sk-None-izmLhx0PUGxalUxl4RaRT3BlbkFJmSVSdLfv7ypsP6U036hH"
-	url := "https://api.openai.com/v1/chat/completions"
-
-	//part of creating go object regarding the user request.
-
-	userreq.Model = "gpt-4o-mini-2024-07-18"
-	userreq.Temperature = 0.7
-
-	//요청을 따로 빼는게 좋음.. Makingrequest는 재사용우려가 있음...
-	userreq.InputUserChat()
-
-	//marshal the user request so the other lang can understand
-	ur, _ := json.Marshal(userreq)
-	//fmt.Println(string(ur))
-	//create as http request.
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(ur))
-
-	//header set
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apikey)
-	return req
 }
 
 // Raw data from GPT API server
@@ -203,50 +160,15 @@ type SendDatatoGO struct {
 
 // JS input data from user handler.
 func UserinputHandler(w http.ResponseWriter, r *http.Request) {
-	//get a chat data from Userinput.
-
-	// Decode the data, and check if there's a Image []Byte.
-	// if there's no Image byte continue the code.
-	// if there's Image data, redirect request to /Image Handfunc.
-	// as Image Handler has a feature to hanlde a prompt with Image given.
-
-	//need to change the data to the Go object with decoder.
 	var Uinput Userinput
-
 	json.NewDecoder(r.Body).Decode(&Uinput)
-	//get data and transfer the data with the json code before transfering you must do check if it fit to json type API request for GPT api.
-
 	messageslice = CachePreviousConver(messageslice, Messages{"user", r.RemoteAddr + "님의 채팅 : " + Uinput.Request})
 
-	//fmt.Println(Uinput.Request)
-	//Create reqeust that fit to Json.
+	//객체 생성
+	userreq := new(Request)
+	userreq.Messages = messageslice
 
-	//transferring the inputdata that hadnled by upper code. and get response
-	req := func() *http.Request {
-		userreq := new(Request)
-		userreq.Messages = messageslice
-		apikey := "sk-None-izmLhx0PUGxalUxl4RaRT3BlbkFJmSVSdLfv7ypsP6U036hH"
-		url := "https://api.openai.com/v1/chat/completions"
-
-		//part of creating go object regarding the user request.
-
-		userreq.Model = "gpt-4o-mini-2024-07-18"
-		userreq.Temperature = 0.7
-
-		//marshal the user request so the other lang can understand
-		ur, _ := json.Marshal(userreq)
-		fmt.Println(string(ur))
-		//create as http request.
-		req, _ := http.NewRequest("POST", url, bytes.NewBuffer(ur))
-
-		//header set
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+apikey)
-
-		return req
-
-	}
-	rawres := GetResponse(req())
+	rawres := GetRes(userreq)
 	transformedd := TransformRes(rawres, &Response{})
 
 	//Stack Conversation at max 1000 (You and GPT)
@@ -262,6 +184,7 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 	//Stack previous Conver at Max 7,
 	messageslice = CachePreviousConver(messageslice, transformedd.Choices[0].Messages)
 
+	//Printtest(rsin)
 	//fmt.Println("[]Messages: GPT와의 대화 : ", ResCollector)
 
 	//바디에 있는 데이터만 UI쪽으로 전달.
@@ -275,18 +198,14 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 			sdata, _ := json.Marshal(outputt)
 			w.Write(sdata)
 	*/
+	Logwrite(userreq)
+
 }
 
 func SendingChan() {
 
 	broadcast <- ResCollector[len(ResCollector)-1].Content
 }
-
-/*
-func SavingResponse(r *Response) []Messages {
-
-}
-*/
 
 func CachePreviouosGres(res *Response, content Messages) []Messages {
 	ResCollector = append(ResCollector, content)

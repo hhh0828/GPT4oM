@@ -89,7 +89,6 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("Conn객체 만들어짐")
 	//fmt.Println("아ㅣ거는 테스트이다 ㅇtest")
 	defer conn.Close()
 
