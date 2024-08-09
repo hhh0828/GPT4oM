@@ -272,14 +272,14 @@ func CreateThread(w http.ResponseWriter, r *http.Request) {
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(r.RemoteAddr + "IndexHandler 로부터 Print 된 IP 주소")
-	http.ServeFile(w, r, "./static/index.html")
+	http.ServeFile(w, r, "./Static/index.html")
 }
 
 func main() {
 
 	// / 경로로 들어오는 모든 요청을 ./static 디렉토리의 index.html 파일로 라우팅
 	go handleMessages()
-	http.ListenAndServe("0.0.0.0:8080", RequestHandler())
+	http.ListenAndServe("0.0.0.0:8800", RequestHandler())
 	userreq := new(Request)
 	req := userreq.MakingRequest()
 	rawres := GetResponse(req)
