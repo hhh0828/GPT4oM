@@ -293,7 +293,7 @@ func main() {
 	PrintResponse(transfromedres)
 	r := http.Request{}
 	r.FormFile("image")
-
+	ConnDB()
 }
 
 //Making request API 입력 테스트 및 구조체 구현
