@@ -113,6 +113,7 @@ func RequestHandler() *http.ServeMux {
 	mux.HandleFunc("/createthread", CreateThread)
 	mux.HandleFunc("/whatismyip", IPreturn)
 	mux.HandleFunc("/ws", HandleConnections)
+	mux.HandleFunc("/joinus", Joinus)
 	return mux
 }
 
@@ -198,8 +199,21 @@ func UserinputHandler(w http.ResponseWriter, r *http.Request) {
 			sdata, _ := json.Marshal(outputt)
 			w.Write(sdata)
 	*/
+
 	Logwrite(userreq)
 
+	var us User = User{
+		ID:    1,
+		Name:  "Hyunho.Hong2",
+		Email: "hhhcjswo@naver.com1",
+	}
+
+	var loguserchat Userchat = Userchat{
+		User:           us,
+		RequestContent: Uinput.Request,
+	}
+
+	LogUserChat(&loguserchat)
 }
 
 func SendingChan() {
@@ -280,20 +294,24 @@ func main() {
 	// / 경로로 들어오는 모든 요청을 ./static 디렉토리의 index.html 파일로 라우팅
 	go handleMessages()
 	http.ListenAndServe("0.0.0.0:8800", RequestHandler())
-	userreq := new(Request)
-	req := userreq.MakingRequest()
-	rawres := GetResponse(req)
-	//part of Docker container response.
 
-	//fmt.Println(rawres)
-	res := new(Response)
-	transfromedres := TransformRes(rawres, res)
+	/*
+		userreq := new(Request)
+		req := userreq.MakingRequest()
+		rawres := GetResponse(req)
+		//part of Docker container response.
 
-	//
-	PrintResponse(transfromedres)
+		//fmt.Println(rawres)
+		res := new(Response)
+		transfromedres := TransformRes(rawres, res)
+
+		//
+		PrintResponse(transfromedres)
+	*/
+
 	r := http.Request{}
 	r.FormFile("image")
-	ConnDB()
+	//ConnDB()
 }
 
 //Making request API 입력 테스트 및 구조체 구현

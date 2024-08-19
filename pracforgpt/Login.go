@@ -10,26 +10,19 @@ import (
 	"gorm.io/gorm"
 )
 
-type ID struct {
-	IDX       int
-	CreatedAt time.Time
-	User
-	ID       string
-	Password string
-}
-
 type User struct {
-	IDX     int
-	Name    string
-	Email   string
-	Address string
+	ID        uint   `gorm:"primaryKey;autoIncrement"`
+	Name      string `gorm:"size:100"`
+	Email     string `gorm:"uniqueIndex;size:100"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // 0817 study
 //go get -u gorm.io/gorm
 // go get -u gorm.io/driver/mysql # MySQL 드라이버 예시
 
-func ConnDB() {
+func InitDB() {
 	dsn := "host=localhost user=postgres password=root1234 port=8801 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -39,12 +32,22 @@ func ConnDB() {
 	newDBName := "testDB"
 	sqlnewdb := fmt.Sprintf("CREATE DATABASE %s;", newDBName)
 	db.Exec(sqlnewdb)
-	db.AutoMigrate(&ID{})
+	db.AutoMigrate(&User{})
 
 	//err = db.AutoMigrate(&User{})
+
+}
+
+func ConnDB() (db *gorm.DB, er error) {
+	dsn := "host=localhost user=postgres password=root1234 dbname=testdb port=8801 sslmode=disable"
+	fmt.Println(dsn)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
+		log.Fatal("Failed to connect to the database:", err)
 	}
+	fmt.Println("PostgreSQL에 성공적으로 연결되었습니다!")
+	return db, er
+
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {

@@ -78,6 +78,6 @@ func (userreq *Request) RetrieveSelf() string {
 		result.WriteString(Message.Content + "\n")
 	}
 
-	res := result.String() + "모델 정보 : " + userreq.Model + "\n" + fmt.Sprintf("%f", userreq.Temperature)
+	res := result.String() + "모델 정보1 : " + userreq.Model + "\n" + fmt.Sprintf("%f", userreq.Temperature)
 	return res
 }
