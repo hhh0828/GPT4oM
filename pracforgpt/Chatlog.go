@@ -1,6 +1,9 @@
 package main
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type Userchat struct {
 	ID             uint `gorm:"primaryKey;autoIncrement"`
@@ -17,4 +20,21 @@ func LogUserChat(ur *Userchat) {
 
 	db.AutoMigrate(&Userchat{})
 	db.Create(&ur)
+
+	var userchat Userchat
+	db.First(&userchat, 2)
+	fmt.Println(userchat)
+
+}
+
+func CreateGobject() {
+
+	db, err := ConnDB()
+	if err != nil {
+		log.Fatal("xx", err)
+
+	}
+	var userchat Userchat
+	db.First(&userchat, 1)
+	fmt.Println(userchat)
 }
