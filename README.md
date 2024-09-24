@@ -1,3 +1,5 @@
+![image](https://github.com/user-attachments/assets/40242f4e-81db-4127-a74f-29800d042021)
+
 ![image](https://github.com/user-attachments/assets/1427ab50-14d0-414d-9e88-da36d752883f)
 
 if you are checking my resume, 
